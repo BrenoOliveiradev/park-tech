@@ -1,3 +1,5 @@
+import bcrypt from "bcrypt";
+import prisma from "../../config/database.js";
 import { UserRole } from "../../generated/prisma/enums.js";
 
 interface CreateUserInput {
@@ -8,9 +10,27 @@ interface CreateUserInput {
 }
 
 class CreateUserService {
-    execute(input: CreateUserInput){
-        
-        
+    async execute(input: CreateUserInput) {
+        const existingUser = await prisma.user.findFirst({
+            where: {
+                email: input.email
+            }
+        });
+
+        if (existingUser) {
+            throw Error("Email já utilizado!");
+        }
+        const hashedPassword = await bcrypt.hash(input.password, 8);
+        await prisma.user.create({
+            data: {
+                email: input.email,
+                name: input.name,
+                role: input.role,
+                password: hashedPassword
+            }
+        });
+
+        return;
     }
 }
 
